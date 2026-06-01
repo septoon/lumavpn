@@ -45,8 +45,8 @@ type AdminUser = {
   telegramId: string | null;
   username: string | null;
   firstName: string | null;
-  subscriptions: Array<{ id: string; plan: string; status: string; expiresAt: string }>;
-  vpnConfigs: Array<{ id: string; type: string; isActive: boolean }>;
+  subscriptions?: Array<{ id: string; plan: string; status: string; expiresAt: string }>;
+  vpnConfigs?: Array<{ id: string; type: string; isActive: boolean }>;
 };
 
 export default function AdminPage() {
@@ -359,7 +359,7 @@ export default function AdminPage() {
             <h2 className="text-xl font-semibold">Пользователи</h2>
             <div className="mt-4 space-y-3">
               {adminUsers.map((item) => {
-                const active = item.subscriptions.find((subscription) => subscription.status === 'ACTIVE');
+                const active = (item.subscriptions ?? []).find((subscription) => subscription.status === 'ACTIVE');
                 return (
                   <div key={item.id} className="rounded-md border border-line bg-slate-50 p-3 text-sm">
                     <div className="font-semibold">
