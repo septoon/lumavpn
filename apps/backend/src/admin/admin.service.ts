@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
+import * as QRCode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
@@ -25,7 +26,9 @@ export class AdminService {
       payments,
       configs,
       logs,
-      subscriptions
+      subscriptions,
+      activeVpnConfigs,
+      activeVpnConfigsByType
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
@@ -44,6 +47,12 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         take: 50,
         include: { user: true, planRef: true }
+      }),
+      this.prisma.vpnConfig.count({ where: { isActive: true } }),
+      this.prisma.vpnConfig.groupBy({
+        by: ['type'],
+        where: { isActive: true },
+        _count: { _all: true }
       })
     ]);
 
@@ -53,7 +62,11 @@ export class AdminService {
         activeSubscriptions,
         expiresToday,
         monthRevenue: monthRevenue._sum.amount ?? 0,
-        totalRevenue: totalRevenue._sum.amount ?? 0
+        totalRevenue: totalRevenue._sum.amount ?? 0,
+        activeVpnConfigs,
+        activeVpnConfigsByType: Object.fromEntries(
+          activeVpnConfigsByType.map((item) => [item.type, item._count._all])
+        )
       },
       payments,
       configs,
@@ -63,7 +76,14 @@ export class AdminService {
   }
 
   users() {
-    return this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        subscriptions: { orderBy: { createdAt: 'desc' }, take: 3 },
+        vpnConfigs: { where: { isActive: true }, orderBy: { createdAt: 'desc' } }
+      }
+    });
   }
 
   async grantSubscription(input: {
@@ -107,7 +127,10 @@ export class AdminService {
       }
     });
 
-    return subscription;
+    return {
+      subscription,
+      access: await this.subscriptions.accessForUser(user.id)
+    };
   }
 
   async createSubscriptionGrant(input: {
@@ -147,6 +170,49 @@ export class AdminService {
       }
     });
 
-    return grant;
+    return {
+      ...grant,
+      qrCode: await QRCode.toDataURL(`https://t.me/${process.env.TELEGRAM_BOT_USERNAME ?? 'lumastackvpn_bot'}?start=grant_${grant.token}`, {
+        width: 320,
+        margin: 1
+      })
+    };
+  }
+
+  async disableUser(userId: string) {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { userId, status: 'ACTIVE' }
+    });
+    for (const subscription of subscriptions) {
+      await this.subscriptions.cancel(subscription.id);
+    }
+    await this.prisma.log.create({
+      data: {
+        type: 'ADMIN',
+        payload: { action: 'user_disabled', userId }
+      }
+    });
+    return { disabledSubscriptions: subscriptions.length };
+  }
+
+  extendSubscription(subscriptionId: string, days: number) {
+    return this.subscriptions.extend(subscriptionId, days);
+  }
+
+  async extendUser(userId: string, days: number) {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { expiresAt: 'desc' }
+    });
+    if (!subscription) throw new NotFoundException('Active subscription not found');
+    return this.subscriptions.extend(subscription.id, days);
+  }
+
+  trialWarningsDue() {
+    return this.subscriptions.trialWarningsDue();
+  }
+
+  markTrialWarningSent(subscriptionId: string, telegramId: string) {
+    return this.subscriptions.markTrialWarningSent(subscriptionId, telegramId);
   }
 }

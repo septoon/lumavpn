@@ -41,6 +41,19 @@ export class UsersController {
     );
   }
 
+  @Get(':userId/access')
+  access(@Param('userId') userId: string, @Query('deviceFingerprint') deviceFingerprint?: string) {
+    return this.subscriptions.accessForUser(userId, deviceFingerprint);
+  }
+
+  @Post(':userId/trial')
+  startTrial(
+    @Param('userId') userId: string,
+    @Body() body: { deviceFingerprint?: string }
+  ) {
+    return this.subscriptions.startTrial(userId, body.deviceFingerprint);
+  }
+
   @Post('grants/:token/claim')
   async claimGrant(
     @Param('token') token: string,

@@ -13,7 +13,7 @@ export class CreatePlanDto {
   description?: string;
 
   @IsInt()
-  @Min(1)
+  @Min(0)
   priceRub!: number;
 
   @IsInt()

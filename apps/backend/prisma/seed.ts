@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { defaultPlans } from '@lumavpn/shared';
-import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -29,7 +28,7 @@ async function main() {
         payload: {
           message: 'Admin credentials configured through environment',
           email,
-          passwordHashPreview: (await bcrypt.hash(password, 10)).slice(0, 16)
+          passwordConfigured: Boolean(password)
         }
       }
     });

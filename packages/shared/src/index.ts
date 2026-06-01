@@ -12,7 +12,7 @@ export const planSchema = z.object({
   code: z.string().min(2).max(32).regex(/^[A-Z0-9_]+$/),
   title: z.string().min(2).max(120),
   description: z.string().max(500).optional(),
-  priceRub: z.number().int().positive(),
+  priceRub: z.number().int().nonnegative(),
   durationDays: z.number().int().positive(),
   vpnTypes: z.array(z.enum(vpnTypes)).min(1),
   isActive: z.boolean().default(true)
@@ -21,6 +21,15 @@ export const planSchema = z.object({
 export type PlanInput = z.infer<typeof planSchema>;
 
 export const defaultPlans: PlanInput[] = [
+  {
+    code: 'TRIAL_3',
+    title: 'Пробный период',
+    description: 'VLESS Reality, MTProto Proxy и AmneziaWG на 3 дня',
+    priceRub: 0,
+    durationDays: 3,
+    vpnTypes: ['VLESS', 'MTPROXY', 'AMNEZIA'],
+    isActive: true
+  },
   {
     code: 'MONTH_1',
     title: '1 месяц',
