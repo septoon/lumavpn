@@ -2,10 +2,20 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Copy, KeyRound, Link2, LucideIcon, Send, Users, WalletCards } from 'lucide-react';
-import { adminLogin, createSubscriptionGrant, getAdminDashboard, grantSubscription } from '../../lib/api';
+import {
+  adminLogin,
+  createSubscriptionGrant,
+  disableUser,
+  extendUser,
+  getAdminDashboard,
+  getAdminUsers,
+  grantSubscription,
+  type UserAccess
+} from '../../lib/api';
 import { useTwa } from '../../components/twa-provider';
 
 const planOptions = [
+  ['TRIAL_3', 'Пробный период'],
   ['MONTH_1', '1 месяц'],
   ['MONTH_3', '3 месяца'],
   ['MONTH_6', '6 месяцев']
@@ -30,12 +40,22 @@ type Dashboard = {
   payments: Array<{ id: string; amount: number; status: string; createdAt: string }>;
 };
 
+type AdminUser = {
+  id: string;
+  telegramId: string | null;
+  username: string | null;
+  firstName: string | null;
+  subscriptions: Array<{ id: string; plan: string; status: string; expiresAt: string }>;
+  vpnConfigs: Array<{ id: string; type: string; isActive: boolean }>;
+};
+
 export default function AdminPage() {
   const { isTwa, isLoading, user, isAdmin, accessToken, error } = useTwa();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [authMessage, setAuthMessage] = useState('');
   const [identifierType, setIdentifierType] = useState<'telegramId' | 'userId'>('telegramId');
   const [identifier, setIdentifier] = useState('');
@@ -46,7 +66,9 @@ export default function AdminPage() {
     link: string;
     planCode: string;
     expiresAt: string;
+    qrCode?: string;
   } | null>(null);
+  const [issuedAccess, setIssuedAccess] = useState<UserAccess | null>(null);
   const [manualMessage, setManualMessage] = useState('');
   const [linkMessage, setLinkMessage] = useState('');
 
@@ -64,13 +86,21 @@ export default function AdminPage() {
     if (!accessToken || token) return;
     setAuthMessage('');
     setToken(accessToken);
-    getAdminDashboard(accessToken)
-      .then(setDashboard)
+    loadAdminData(accessToken)
       .catch(() => {
         setToken('');
         setAuthMessage('Не удалось загрузить админку по Telegram-сессии');
       });
   }, [accessToken, token]);
+
+  async function loadAdminData(currentToken = token) {
+    const [dashboardData, usersData] = await Promise.all([
+      getAdminDashboard(currentToken),
+      getAdminUsers(currentToken)
+    ]);
+    setDashboard(dashboardData);
+    setAdminUsers(usersData);
+  }
 
   async function login(event: FormEvent) {
     event.preventDefault();
@@ -79,7 +109,7 @@ export default function AdminPage() {
     setLinkMessage('');
     const result = await adminLogin(email, password);
     setToken(result.accessToken);
-    setDashboard(await getAdminDashboard(result.accessToken));
+    await loadAdminData(result.accessToken);
   }
 
   async function submitGrant(event: FormEvent) {
@@ -89,9 +119,10 @@ export default function AdminPage() {
       identifierType === 'telegramId'
         ? { telegramId: identifier, planCode, autoRenew }
         : { userId: identifier, planCode, autoRenew };
-    await grantSubscription(token, payload);
+    const result = await grantSubscription(token, payload) as { access?: UserAccess };
+    setIssuedAccess(result.access ?? null);
     setManualMessage('Подписка выдана, конфигурации пересозданы');
-    setDashboard(await getAdminDashboard(token));
+    await loadAdminData(token);
   }
 
   async function submitGrantLink(event: FormEvent) {
@@ -101,6 +132,7 @@ export default function AdminPage() {
     setGrantLink({
       planCode: grant.planCode,
       expiresAt: grant.expiresAt,
+      qrCode: grant.qrCode,
       link: `https://t.me/${telegramBotUsername}?start=grant_${grant.token}`
     });
     setLinkMessage('Одноразовая ссылка для одного устройства создана');
@@ -168,7 +200,7 @@ export default function AdminPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold sm:text-3xl">Админка</h1>
         <button
-          onClick={async () => setDashboard(await getAdminDashboard(token))}
+          onClick={async () => loadAdminData(token)}
           className="h-10 rounded-md border border-line bg-white px-4 text-sm font-medium"
         >
           Обновить
@@ -211,6 +243,7 @@ export default function AdminPage() {
                   {grantLink.planCode} · до {new Date(grantLink.expiresAt).toLocaleString('ru-RU')}
                 </div>
                 <div className="mt-2 break-all font-medium">{grantLink.link}</div>
+                {grantLink.qrCode && <img src={grantLink.qrCode} alt="Grant QR" className="mt-3 h-44 w-44" />}
                 <button
                   type="button"
                   onClick={() => navigator.clipboard.writeText(grantLink.link)}
@@ -270,36 +303,101 @@ export default function AdminPage() {
               Выдать подписку
             </button>
             {manualMessage && <p className="mt-4 text-sm text-cyan">{manualMessage}</p>}
+            {issuedAccess?.configs.length ? (
+              <div className="mt-4 space-y-3 rounded-md border border-line bg-slate-50 p-3 text-sm">
+                <div className="font-semibold">Ключи пользователя</div>
+                {issuedAccess.configs.map((config) => (
+                  <div key={config.id} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+                    <div className="font-medium">{config.type}</div>
+                    {config.link && <div className="mt-1 break-all text-muted">{config.link}</div>}
+                    {config.conf && (
+                      <textarea
+                        className="mt-2 h-28 w-full rounded-md border border-line bg-white p-2 font-mono text-xs"
+                        readOnly
+                        value={config.conf}
+                      />
+                    )}
+                    {config.qrCode && <img src={config.qrCode} alt={`${config.type} QR`} className="mt-2 h-40 w-40" />}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </form>
         </div>
 
-        <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-semibold">Последние подписки</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[620px] w-full text-left text-sm">
-              <thead className="text-muted">
-                <tr>
-                  <th className="border-b border-line py-3">Пользователь</th>
-                  <th className="border-b border-line py-3">Тариф</th>
-                  <th className="border-b border-line py-3">Статус</th>
-                  <th className="border-b border-line py-3">До</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboard?.subscriptions ?? []).slice(0, 10).map((item) => (
-                  <tr key={item.id}>
-                    <td className="border-b border-line py-3">
-                      {item.user.username || item.user.telegramId || 'user'}
-                    </td>
-                    <td className="border-b border-line py-3">{item.plan}</td>
-                    <td className="border-b border-line py-3">{item.status}</td>
-                    <td className="border-b border-line py-3">
-                      {new Date(item.expiresAt).toLocaleDateString('ru-RU')}
-                    </td>
+        <div className="space-y-6">
+          <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-semibold">Последние подписки</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-[620px] w-full text-left text-sm">
+                <thead className="text-muted">
+                  <tr>
+                    <th className="border-b border-line py-3">Пользователь</th>
+                    <th className="border-b border-line py-3">Тариф</th>
+                    <th className="border-b border-line py-3">Статус</th>
+                    <th className="border-b border-line py-3">До</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(dashboard?.subscriptions ?? []).slice(0, 10).map((item) => (
+                    <tr key={item.id}>
+                      <td className="border-b border-line py-3">
+                        {item.user.username || item.user.telegramId || 'user'}
+                      </td>
+                      <td className="border-b border-line py-3">{item.plan}</td>
+                      <td className="border-b border-line py-3">{item.status}</td>
+                      <td className="border-b border-line py-3">
+                        {new Date(item.expiresAt).toLocaleDateString('ru-RU')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-semibold">Пользователи</h2>
+            <div className="mt-4 space-y-3">
+              {adminUsers.map((item) => {
+                const active = item.subscriptions.find((subscription) => subscription.status === 'ACTIVE');
+                return (
+                  <div key={item.id} className="rounded-md border border-line bg-slate-50 p-3 text-sm">
+                    <div className="font-semibold">
+                      {item.username ? `@${item.username}` : item.firstName || item.telegramId || item.id}
+                    </div>
+                    <div className="mt-1 text-muted">
+                      {active
+                        ? `${active.plan} · до ${new Date(active.expiresAt).toLocaleDateString('ru-RU')}`
+                        : 'Нет активной подписки'}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await extendUser(token, item.id, 30);
+                          await loadAdminData(token);
+                        }}
+                        className="h-9 rounded-md border border-line bg-white px-3 text-xs font-medium"
+                        disabled={!active}
+                      >
+                        +30 дней
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await disableUser(token, item.id);
+                          await loadAdminData(token);
+                        }}
+                        className="h-9 rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600"
+                        disabled={!active}
+                      >
+                        Отключить
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>

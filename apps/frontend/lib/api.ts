@@ -30,6 +30,44 @@ export async function createPayment(input: { userId: string; planCode: string; a
   return response.json() as Promise<{ paymentId: string; confirmationUrl?: string }>;
 }
 
+export type UserAccess = {
+  subscription: null | {
+    id: string;
+    plan: string;
+    type: 'trial' | 'full';
+    status: string;
+    autoRenew: boolean;
+    startedAt: string;
+    expiresAt: string;
+    daysRemaining: number;
+  };
+  configs: Array<{
+    id: string;
+    type: 'VLESS' | 'AMNEZIA' | 'MTPROXY';
+    qrCode?: string | null;
+    link?: string;
+    conf?: string;
+    raw?: string;
+  }>;
+};
+
+export async function getUserAccess(userId: string, deviceFingerprint?: string) {
+  const query = deviceFingerprint ? `?deviceFingerprint=${encodeURIComponent(deviceFingerprint)}` : '';
+  const response = await fetch(`${apiUrl}/telegram/users/${userId}/access${query}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('User access API failed');
+  return response.json() as Promise<UserAccess>;
+}
+
+export async function startTrial(userId: string, deviceFingerprint?: string) {
+  const response = await fetch(`${apiUrl}/telegram/users/${userId}/trial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deviceFingerprint })
+  });
+  if (!response.ok) throw new Error('Trial activation failed');
+  return response.json();
+}
+
 export async function adminLogin(email: string, password: string) {
   const response = await fetch(`${apiUrl}/auth/admin/login`, {
     method: 'POST',
@@ -77,6 +115,15 @@ export async function getAdminDashboard(token: string) {
   return response.json();
 }
 
+export async function getAdminUsers(token: string) {
+  const response = await fetch(`${apiUrl}/admin/users`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store'
+  });
+  if (!response.ok) throw new Error('Admin users API failed');
+  return response.json();
+}
+
 export async function grantSubscription(
   token: string,
   input: { userId?: string; telegramId?: string; planCode: string; autoRenew: boolean }
@@ -93,6 +140,28 @@ export async function grantSubscription(
   return response.json();
 }
 
+export async function disableUser(token: string, userId: string) {
+  const response = await fetch(`${apiUrl}/admin/users/${userId}/disable`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) throw new Error('Disable user failed');
+  return response.json();
+}
+
+export async function extendUser(token: string, userId: string, days: number) {
+  const response = await fetch(`${apiUrl}/admin/users/${userId}/extend`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ days })
+  });
+  if (!response.ok) throw new Error('Extend user failed');
+  return response.json();
+}
+
 export async function createSubscriptionGrant(
   token: string,
   input: { planCode: string; autoRenew: boolean; ttlMinutes?: number }
@@ -106,5 +175,5 @@ export async function createSubscriptionGrant(
     body: JSON.stringify(input)
   });
   if (!response.ok) throw new Error('Subscription grant link creation failed');
-  return response.json() as Promise<{ token: string; planCode: string; expiresAt: string }>;
+  return response.json() as Promise<{ token: string; planCode: string; expiresAt: string; qrCode?: string }>;
 }
