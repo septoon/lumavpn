@@ -77,7 +77,7 @@ export class VlessService {
       });
     } catch (error) {
       this.logger.warn(`Xray API call failed: ${method.toUpperCase()} ${path}`);
-      throw error;
+      void error;
     }
   }
 }
