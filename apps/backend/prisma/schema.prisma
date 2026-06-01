@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PAST_DUE
+}
+
+enum VpnType {
+  VLESS
+  AMNEZIA
+  MTPROXY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum LogType {
+  PAYMENT
+  SUBSCRIPTION
+  VPN
+  TELEGRAM
+  ADMIN
+  SYSTEM
+}
+
+enum SubscriptionGrantStatus {
+  PENDING
+  CLAIMED
+  CANCELLED
+  EXPIRED
+}
+
+model User {
+  id            String         @id @default(uuid())
+  telegramId    String?        @unique
+  username      String?
+  firstName     String?
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[]
+  vpnConfigs    VpnConfig[]
+  payments      Payment[]
+}
+
+model Plan {
+  id           String         @id @default(uuid())
+  code         String         @unique
+  title        String
+  description  String?
+  priceRub     Int
+  durationDays Int
+  vpnTypes     VpnType[]
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id         String             @id @default(uuid())
+  userId     String
+  planId     String
+  plan       String
+  status     SubscriptionStatus @default(ACTIVE)
+  autoRenew  Boolean            @default(false)
+  startedAt  DateTime           @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime           @default(now())
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planRef    Plan               @relation(fields: [planId], references: [id])
+
+  @@index([status, expiresAt])
+  @@index([userId])
+}
+
+model VpnConfig {
+  id                String   @id @default(uuid())
+  userId            String
+  type              VpnType
+  config            String
+  qrCode            String?
+  deviceFingerprint String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([userId, deviceFingerprint])
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  amount          Int
+  status          PaymentStatus @default(PENDING)
+  paymentId       String        @unique
+  paymentMethodId String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  type      LogType
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+}
+
+model SubscriptionGrant {
+  id                  String                  @id @default(uuid())
+  token               String                  @unique
+  planCode            String
+  autoRenew           Boolean                 @default(false)
+  status              SubscriptionGrantStatus @default(PENDING)
+  expiresAt           DateTime
+  createdByTelegramId String?
+  deviceFingerprint   String?
+  claimedByUserId     String?
+  claimedAt           DateTime?
+  createdAt           DateTime                @default(now())
+
+  @@index([status, expiresAt])
+  @@index([deviceFingerprint])
+}

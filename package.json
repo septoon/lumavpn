@@ -1,0 +1,32 @@
+{
+  "name": "lumavpn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-ready monorepo for VPN subscription sales with Telegram, YooKassa and automated config provisioning.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:backend": "npm run start:dev -w @lumavpn/backend",
+    "dev:frontend": "npm run dev -w @lumavpn/frontend",
+    "dev:bot": "npm run dev -w @lumavpn/telegram-bot",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml,css}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "husky": "^9.1.7",
+    "playwright": "^1.60.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  }
+}
