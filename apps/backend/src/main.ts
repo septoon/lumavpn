@@ -9,10 +9,26 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const configuredFrontendUrl = config.get<string>('FRONTEND_PUBLIC_URL');
+  const corsOrigins = new Set(
+    [
+      configuredFrontendUrl,
+      'https://septoon.github.io',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002'
+    ].filter((origin): origin is string => Boolean(origin))
+  );
 
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: config.get<string>('FRONTEND_PUBLIC_URL') ?? true,
+    origin: (origin, callback) => {
+      if (!origin || corsOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS origin blocked: ${origin}`));
+    },
     credentials: true
   });
   app.use(helmet());

@@ -12,10 +12,16 @@ export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   upsertTelegramUser(input: TelegramUserInput) {
+    const data = {
+      telegramId: input.telegramId,
+      username: input.username,
+      firstName: input.firstName
+    };
+
     return this.prisma.user.upsert({
-      where: { telegramId: input.telegramId },
-      update: { username: input.username, firstName: input.firstName },
-      create: input
+      where: { telegramId: data.telegramId },
+      update: { username: data.username, firstName: data.firstName },
+      create: data
     });
   }
 
