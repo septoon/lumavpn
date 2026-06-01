@@ -196,7 +196,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+    <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-8 sm:py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold sm:text-3xl">Админка</h1>
         <button
@@ -217,9 +217,12 @@ export default function AdminPage() {
         ))}
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-6">
-          <form onSubmit={submitGrantLink} className="rounded-lg border border-line bg-white p-5 shadow-sm">
+      <section className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0 space-y-6">
+          <form
+            onSubmit={submitGrantLink}
+            className="min-w-0 max-w-full overflow-hidden rounded-lg border border-line bg-white p-5 shadow-sm"
+          >
             <h2 className="text-xl font-semibold">Одноразовая ссылка</h2>
             <label className="mt-4 block text-sm font-medium">Срок</label>
             <select
@@ -233,17 +236,17 @@ export default function AdminPage() {
                 </option>
               ))}
             </select>
-            <button className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-cyan px-3 py-2 text-sm font-semibold text-white">
-              <Link2 className="h-4 w-4" />
-              Создать ссылку для одного устройства
+            <button className="mt-5 inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md bg-cyan px-3 py-2 text-sm font-semibold leading-5 text-white">
+              <Link2 className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 whitespace-normal text-center">Создать ссылку для одного устройства</span>
             </button>
             {grantLink && (
-              <div className="mt-4 rounded-md border border-line bg-slate-50 p-3 text-sm">
+              <div className="mt-4 min-w-0 max-w-full overflow-hidden rounded-md border border-line bg-slate-50 p-3 text-sm">
                 <div className="text-muted">
                   {grantLink.planCode} · до {new Date(grantLink.expiresAt).toLocaleString('ru-RU')}
                 </div>
-                <div className="mt-2 break-all font-medium">{grantLink.link}</div>
-                {grantLink.qrCode && <img src={grantLink.qrCode} alt="Grant QR" className="mt-3 h-44 w-44" />}
+                <div className="mt-2 max-w-full break-all font-medium">{grantLink.link}</div>
+                {grantLink.qrCode && <img src={grantLink.qrCode} alt="Grant QR" className="mt-3 h-44 w-44 max-w-full" />}
                 <button
                   type="button"
                   onClick={() => navigator.clipboard.writeText(grantLink.link)}
@@ -257,7 +260,10 @@ export default function AdminPage() {
             {linkMessage && <p className="mt-4 text-sm text-cyan">{linkMessage}</p>}
           </form>
 
-          <form onSubmit={submitGrant} className="rounded-lg border border-line bg-white p-5 shadow-sm">
+          <form
+            onSubmit={submitGrant}
+            className="min-w-0 max-w-full overflow-hidden rounded-lg border border-line bg-white p-5 shadow-sm"
+          >
             <h2 className="text-xl font-semibold">Выдать подписку вручную</h2>
             <div className="mt-5 grid grid-cols-2 rounded-md border border-line p-1 text-sm">
               {(['telegramId', 'userId'] as const).map((type) => (
@@ -298,18 +304,18 @@ export default function AdminPage() {
               />
               Включить автопродление
             </label>
-            <button className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cyan px-3 text-sm font-semibold text-white">
-              <Send className="h-4 w-4" />
-              Выдать подписку
+            <button className="mt-5 inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md bg-cyan px-3 py-2 text-sm font-semibold leading-5 text-white">
+              <Send className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 whitespace-normal text-center">Выдать подписку</span>
             </button>
             {manualMessage && <p className="mt-4 text-sm text-cyan">{manualMessage}</p>}
             {issuedAccess?.configs.length ? (
-              <div className="mt-4 space-y-3 rounded-md border border-line bg-slate-50 p-3 text-sm">
+              <div className="mt-4 min-w-0 max-w-full space-y-3 overflow-hidden rounded-md border border-line bg-slate-50 p-3 text-sm">
                 <div className="font-semibold">Ключи пользователя</div>
                 {issuedAccess.configs.map((config) => (
                   <div key={config.id} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
                     <div className="font-medium">{config.type}</div>
-                    {config.link && <div className="mt-1 break-all text-muted">{config.link}</div>}
+                    {config.link && <div className="mt-1 max-w-full break-all text-muted">{config.link}</div>}
                     {config.conf && (
                       <textarea
                         className="mt-2 h-28 w-full rounded-md border border-line bg-white p-2 font-mono text-xs"
@@ -317,7 +323,7 @@ export default function AdminPage() {
                         value={config.conf}
                       />
                     )}
-                    {config.qrCode && <img src={config.qrCode} alt={`${config.type} QR`} className="mt-2 h-40 w-40" />}
+                    {config.qrCode && <img src={config.qrCode} alt={`${config.type} QR`} className="mt-2 h-40 w-40 max-w-full" />}
                   </div>
                 ))}
               </div>
@@ -325,8 +331,8 @@ export default function AdminPage() {
           </form>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
+        <div className="min-w-0 space-y-6">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-line bg-white p-5 shadow-sm">
             <h2 className="text-xl font-semibold">Последние подписки</h2>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-[620px] w-full text-left text-sm">
@@ -355,7 +361,7 @@ export default function AdminPage() {
               </table>
             </div>
           </div>
-          <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-line bg-white p-5 shadow-sm">
             <h2 className="text-xl font-semibold">Пользователи</h2>
             <div className="mt-4 space-y-3">
               {adminUsers.map((item) => {
