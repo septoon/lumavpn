@@ -54,6 +54,11 @@ export class SubscriptionsService {
 
   async accessForUser(userId: string, deviceFingerprint?: string) {
     const subscription = await this.subscriptions.activeForUser(userId);
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
     const configs = await this.prisma.vpnConfig.findMany({
       where: { userId, isActive: true },
       orderBy: { createdAt: 'desc' }
@@ -75,6 +80,16 @@ export class SubscriptionsService {
             daysRemaining: this.daysRemaining(subscription.expiresAt)
           }
         : null,
+      subscriptions: subscriptions.map((item) => ({
+        id: item.id,
+        plan: item.plan,
+        type: item.plan === TRIAL_PLAN_CODE ? 'trial' : 'full',
+        status: item.status,
+        autoRenew: item.autoRenew,
+        startedAt: item.startedAt,
+        expiresAt: item.expiresAt,
+        daysRemaining: this.daysRemaining(item.expiresAt)
+      })),
       configs: scopedConfigs.map((item) => this.serializeConfig(item))
     };
   }

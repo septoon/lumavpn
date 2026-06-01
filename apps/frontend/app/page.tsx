@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { ArrowRight, Bot, CreditCard, KeyRound } from 'lucide-react';
 import { getPlans } from '../lib/api';
 import { PlanCard } from '../components/plan-card';
+import { MiniAppDashboard } from '../components/mini-app-dashboard';
 
 export default async function HomePage() {
   const plans = await getPlans();
 
   return (
     <main>
+      <MiniAppDashboard />
       <section className="border-b border-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:py-12 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-14">
           <div>

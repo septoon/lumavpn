@@ -41,6 +41,16 @@ export type UserAccess = {
     expiresAt: string;
     daysRemaining: number;
   };
+  subscriptions: Array<{
+    id: string;
+    plan: string;
+    type: 'trial' | 'full';
+    status: string;
+    autoRenew: boolean;
+    startedAt: string;
+    expiresAt: string;
+    daysRemaining: number;
+  }>;
   configs: Array<{
     id: string;
     type: 'VLESS' | 'AMNEZIA' | 'MTPROXY';
