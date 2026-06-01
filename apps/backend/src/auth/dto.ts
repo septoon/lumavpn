@@ -8,3 +8,9 @@ export class AdminLoginDto {
   @MinLength(10)
   password!: string;
 }
+
+export class TelegramWebAppLoginDto {
+  @IsString()
+  @MinLength(20)
+  initData!: string;
+}

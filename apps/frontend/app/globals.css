@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --twa-safe-area-top: env(safe-area-inset-top, 0px);
 }
 
 body {
@@ -21,4 +22,17 @@ button,
 input,
 select {
   font: inherit;
+}
+
+.site-header {
+  position: relative;
+  z-index: 20;
+}
+
+.is-twa .site-header {
+  padding-top: var(--twa-safe-area-top);
+}
+
+.is-twa main {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 18px);
 }

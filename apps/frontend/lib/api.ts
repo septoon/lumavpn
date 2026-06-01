@@ -40,6 +40,34 @@ export async function adminLogin(email: string, password: string) {
   return response.json() as Promise<{ accessToken: string }>;
 }
 
+export type TelegramWebAppAuthResult = {
+  user: {
+    id: string;
+    telegramId: string | null;
+    username: string | null;
+    firstName: string | null;
+  };
+  telegramUser: {
+    id: string;
+    username: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    photoUrl: string | null;
+  };
+  isAdmin: boolean;
+  accessToken?: string;
+};
+
+export async function loginTelegramWebApp(initData: string) {
+  const response = await fetch(`${apiUrl}/auth/telegram/webapp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ initData })
+  });
+  if (!response.ok) throw new Error('Telegram WebApp auth failed');
+  return response.json() as Promise<TelegramWebAppAuthResult>;
+}
+
 export async function getAdminDashboard(token: string) {
   const response = await fetch(`${apiUrl}/admin/dashboard`, {
     headers: { Authorization: `Bearer ${token}` },

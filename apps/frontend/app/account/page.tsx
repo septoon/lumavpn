@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, Suspense, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createPayment } from '../../lib/api';
+import { useTwa } from '../../components/twa-provider';
 
 const planOptions = [
   ['MONTH_1', '1 месяц'],
@@ -20,10 +21,19 @@ export default function AccountPage() {
 
 function AccountForm() {
   const searchParams = useSearchParams();
+  const { isTwa, isLoading, user, error } = useTwa();
   const [userId, setUserId] = useState('');
   const [planCode, setPlanCode] = useState(searchParams.get('plan') ?? 'MONTH_1');
   const [autoRenew, setAutoRenew] = useState(true);
   const [message, setMessage] = useState('');
+  const telegramTitle = useMemo(() => {
+    if (!user) return '';
+    return user.username ? `@${user.username}` : user.firstName || `ID ${user.id}`;
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.id) setUserId(user.id);
+  }, [user?.id]);
 
   async function pay(event: FormEvent) {
     event.preventDefault();
@@ -38,13 +48,25 @@ function AccountForm() {
       <section className="mt-6 grid gap-6 md:grid-cols-[0.9fr_1.1fr]">
         <form onSubmit={pay} className="rounded-lg border border-line bg-white p-5 shadow-sm">
           <h2 className="text-xl font-semibold">Оплата подписки</h2>
-          <label className="mt-4 block text-sm font-medium">User ID из Telegram-бота</label>
-          <input
-            className="mt-2 h-11 w-full rounded-md border border-line px-3"
-            value={userId}
-            onChange={(event) => setUserId(event.target.value)}
-            required
-          />
+          {isTwa ? (
+            <div className="mt-4 rounded-md border border-line bg-slate-50 p-3 text-sm">
+              <div className="font-medium text-ink">Telegram аккаунт</div>
+              <div className="mt-1 text-muted">
+                {isLoading ? 'Авторизация...' : telegramTitle || 'Аккаунт не определён'}
+              </div>
+              {error && <div className="mt-2 text-red-600">{error}</div>}
+            </div>
+          ) : (
+            <>
+              <label className="mt-4 block text-sm font-medium">User ID из Telegram-бота</label>
+              <input
+                className="mt-2 h-11 w-full rounded-md border border-line px-3"
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+                required
+              />
+            </>
+          )}
           <label className="mt-4 block text-sm font-medium">Тариф</label>
           <select
             className="mt-2 h-11 w-full rounded-md border border-line px-3"
@@ -65,7 +87,10 @@ function AccountForm() {
             />
             Автопродление
           </label>
-          <button className="mt-5 h-11 w-full rounded-md bg-cyan text-sm font-semibold text-white">
+          <button
+            className="mt-5 h-11 w-full rounded-md bg-cyan text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!userId || isLoading}
+          >
             Оплатить
           </button>
           {message && <p className="mt-4 text-sm text-muted">{message}</p>}

@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Copy, KeyRound, Link2, LucideIcon, Send, Users, WalletCards } from 'lucide-react';
 import { adminLogin, createSubscriptionGrant, getAdminDashboard, grantSubscription } from '../../lib/api';
+import { useTwa } from '../../components/twa-provider';
 
 const planOptions = [
   ['MONTH_1', '1 месяц'],
@@ -30,10 +31,12 @@ type Dashboard = {
 };
 
 export default function AdminPage() {
+  const { isTwa, isLoading, user, isAdmin, accessToken, error } = useTwa();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [authMessage, setAuthMessage] = useState('');
   const [identifierType, setIdentifierType] = useState<'telegramId' | 'userId'>('telegramId');
   const [identifier, setIdentifier] = useState('');
   const [planCode, setPlanCode] = useState('MONTH_1');
@@ -57,8 +60,21 @@ export default function AdminPage() {
     [dashboard]
   );
 
+  useEffect(() => {
+    if (!accessToken || token) return;
+    setAuthMessage('');
+    setToken(accessToken);
+    getAdminDashboard(accessToken)
+      .then(setDashboard)
+      .catch(() => {
+        setToken('');
+        setAuthMessage('Не удалось загрузить админку по Telegram-сессии');
+      });
+  }, [accessToken, token]);
+
   async function login(event: FormEvent) {
     event.preventDefault();
+    setAuthMessage('');
     setManualMessage('');
     setLinkMessage('');
     const result = await adminLogin(email, password);
@@ -91,9 +107,37 @@ export default function AdminPage() {
   }
 
   if (!token) {
+    if (isTwa && isLoading) {
+      return (
+        <main className="mx-auto max-w-md px-4 py-10">
+          <h1 className="text-3xl font-semibold">Админка</h1>
+          <div className="mt-6 rounded-lg border border-line bg-white p-5 shadow-sm text-sm text-muted">
+            Авторизация через Telegram...
+          </div>
+        </main>
+      );
+    }
+
+    if (isTwa && !isAdmin) {
+      return (
+        <main className="mx-auto max-w-md px-4 py-10">
+          <h1 className="text-3xl font-semibold">Админка</h1>
+          <div className="mt-6 rounded-lg border border-line bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-semibold">Недостаточно прав</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              {user?.username ? `@${user.username}` : user?.firstName || 'Этот Telegram аккаунт'} не найден в
+              TELEGRAM_ADMIN_IDS.
+            </p>
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="mx-auto max-w-md px-4 py-10">
         <h1 className="text-3xl font-semibold">Админка</h1>
+        {authMessage && <p className="mt-4 text-sm text-red-600">{authMessage}</p>}
         <form onSubmit={login} className="mt-6 rounded-lg border border-line bg-white p-5 shadow-sm">
           <label className="block text-sm font-medium">Email</label>
           <input

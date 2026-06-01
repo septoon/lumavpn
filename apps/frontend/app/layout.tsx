@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Nav } from '../components/nav';
+import { TwaProvider } from '../components/twa-provider';
 import './globals.css';
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ru">
       <body>
-        <Nav />
-        {children}
+        <TwaProvider>
+          <Nav />
+          {children}
+        </TwaProvider>
       </body>
     </html>
   );
