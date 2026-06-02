@@ -33,8 +33,7 @@ select {
 }
 
 .site-header {
-  position: relative;
-  z-index: 20;
+  display: none;
 }
 
 .is-twa .site-header {

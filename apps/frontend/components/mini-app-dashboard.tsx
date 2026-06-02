@@ -124,7 +124,7 @@ function AdminQuickActions() {
 }
 
 export function MiniAppDashboard() {
-  const { isTwa, isLoading, user, appUser, isAdmin, error } = useTwa();
+  const { isLoading, user, appUser, isAdmin, error } = useTwa();
   const [access, setAccess] = useState<UserAccess | null>(null);
   const [accessError, setAccessError] = useState('');
   const deviceFingerprint = user?.id ? `telegram:${user.id}` : undefined;
@@ -143,8 +143,6 @@ export function MiniAppDashboard() {
       })
       .catch(() => setAccessError('Не удалось загрузить доступ'));
   }, [appUser?.id, deviceFingerprint]);
-
-  if (!isTwa) return null;
 
   return (
     <section className="twa-screen">
