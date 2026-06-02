@@ -91,8 +91,8 @@ export function TwaProvider({ children }: { children: React.ReactNode }) {
     updateSafeArea();
     webApp.ready?.();
     webApp.expand?.();
-    webApp.setHeaderColor?.('#ffffff');
-    webApp.setBackgroundColor?.('#f7fafc');
+    webApp.setHeaderColor?.('#05080d');
+    webApp.setBackgroundColor?.('#05080d');
     webApp.onEvent?.('viewportChanged', updateSafeArea);
     webApp.onEvent?.('safeAreaChanged', updateSafeArea);
     webApp.onEvent?.('contentSafeAreaChanged', updateSafeArea);

@@ -10,7 +10,7 @@ export default async function HomePage() {
   return (
     <main>
       <MiniAppDashboard />
-      <section className="border-b border-line bg-white">
+      <section className="marketing-home border-b border-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:py-12 md:grid-cols-[1.1fr_0.9fr] md:items-center md:py-14">
           <div>
             <h1 className="max-w-3xl text-3xl font-semibold leading-tight sm:text-4xl md:text-6xl">
@@ -45,7 +45,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="marketing-home mx-auto max-w-6xl px-4 py-12">
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2 className="text-2xl font-semibold">Тарифы</h2>
           <Link href="/faq" className="text-sm text-cyan">FAQ</Link>
